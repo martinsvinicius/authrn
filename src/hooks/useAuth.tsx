@@ -1,6 +1,8 @@
 import React, { useContext, useState } from 'react';
 import { createContext, ReactNode } from 'react';
-import * as Auth  from '../services/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+import * as Auth from '../services/auth';
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -17,16 +19,18 @@ interface AuthContextData {
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
 
 export function AuthProvider(props: AuthProviderProps) {
-  const [user, setUser] = useState<object | null >(null);
+  const [user, setUser] = useState<object | null>(null);
   const [token, setToken] = useState('');
 
-
   async function signIn() {
-    const { token, user } = await Auth.signIn();
+    const response = await Auth.signIn();
 
-    if (user) {
-      setUser(user);
+    if (response.user) {
+      setUser(response.user);
       // setToken(token);
+
+      await AsyncStorage.setItem('@RnAuth:user', JSON.stringify(response.user));
+      await AsyncStorage.setItem('@RnAuth:token', response.token);
     }
   }
 
@@ -34,8 +38,9 @@ export function AuthProvider(props: AuthProviderProps) {
     setUser(null);
   }
 
-  return(
-    <AuthContext.Provider value={{signed: Boolean(user), signIn, signOut, token, user}}>
+  return (
+    <AuthContext.Provider
+      value={{ signed: Boolean(user), signIn, signOut, token, user }}>
       {props.children}
     </AuthContext.Provider>
   );
